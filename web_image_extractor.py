@@ -306,5 +306,14 @@ def main():
                             except:
                                 st.error("Failed to load image")
 
+    # Add footer with some spacing from the main content
+    st.markdown("<br><br><br>", unsafe_allow_html=True)  # Add some space
+    st.markdown("""
+        <div style='text-align: center; color: #666; padding: 10px; font-size: 0.8em;'>
+            Developed by Emre Tuncer | <a style='color: #666; text-decoration: none; border-bottom: 1px solid #666;' 
+            href="https://github.com/emretuncer256" target="_blank">@emretuncer256</a>
+        </div>
+    """, unsafe_allow_html=True)
+
 if __name__ == "__main__":
     main() 
