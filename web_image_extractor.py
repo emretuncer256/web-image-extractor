@@ -15,6 +15,13 @@ import warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Connection': 'keep-alive',
+}
+
 if 'images' not in st.session_state:
     st.session_state.images = []
 if 'selected_images' not in st.session_state:
@@ -26,13 +33,13 @@ if 'select_all_state' not in st.session_state:
 def fetch_url_content(url):
     try:
         # First try with verification
-        response = requests.get(url)
+        response = requests.get(url, headers=HEADERS)
         response.raise_for_status()
         return response.content
     except (requests.exceptions.SSLError, requests.exceptions.RequestException):
         try:
             # If that fails, try without verification
-            response = requests.get(url, verify=False)
+            response = requests.get(url, headers=HEADERS, verify=False)
             response.raise_for_status()
             return response.content
         except Exception as e:
@@ -41,14 +48,19 @@ def fetch_url_content(url):
 
 @st.cache_data(ttl=3600)
 def fetch_url_headers(url):
+    # Handle data URIs
+    if url.startswith('data:'):
+        mime_type = url.split(';')[0].split(':')[1]
+        return {'content-type': mime_type}
+        
     try:
         # First try with verification
-        response = requests.head(url)
+        response = requests.head(url, headers=HEADERS)
         return response.headers
     except (requests.exceptions.SSLError, requests.exceptions.RequestException):
         try:
             # If that fails, try without verification
-            response = requests.head(url, verify=False)
+            response = requests.head(url, headers=HEADERS, verify=False)
             return response.headers
         except Exception as e:
             st.error(f"Failed to fetch headers: {str(e)}")
@@ -114,6 +126,10 @@ def extract_images(url):
 
 @st.cache_data(ttl=3600)
 def is_image_url(url):
+    # Handle data URIs
+    if url.startswith('data:'):
+        return url.startswith('data:image/')
+        
     try:
         headers = fetch_url_headers(url)
         content_type = headers.get('content-type', '').lower()
@@ -153,7 +169,7 @@ def download_images(selected_images):
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for index, img_url in enumerate(selected_images, 1):
             try:
-                response = requests.get(img_url, verify=False)
+                response = requests.get(img_url, headers=HEADERS, verify=False)
                 if response.status_code == 200:
                     content_type = response.headers.get('content-type', '').lower()
                     filename = create_unique_filename(img_url, index, content_type)
